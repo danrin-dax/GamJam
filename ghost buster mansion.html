@@ -1,0 +1,562 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#05080d">
+<title>Ghost Buster: Haunted Mansion</title>
+<style>
+:root{--bg:#05080d;--panel:#0b1219;--line:#2c4b55;--ink:#effbff;--muted:#9ab0b8;--cyan:#73e8ff;--green:#74ff9d;--purple:#b77cff;--red:#ff5d78;--gold:#ffd66d}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;overflow:hidden;background:#000;color:var(--ink);font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;touch-action:none}
+body{display:flex;align-items:center;justify-content:center}
+#app{position:relative;width:min(100vw,177.78vh);height:min(100vh,56.25vw);background:#04070a;overflow:hidden;cursor:crosshair}
+canvas{width:100%;height:100%;display:block}
+.screen{position:absolute;inset:0;display:none;z-index:8;background:radial-gradient(circle at 50% 35%,rgba(30,54,65,.35),rgba(2,5,8,.97) 75%);overflow:auto;padding:2.5%;touch-action:auto;cursor:default}
+.screen.active{display:block}
+.panel{max-width:1120px;margin:0 auto;background:rgba(8,14,20,.94);border:1px solid #29434e;border-radius:18px;padding:20px;box-shadow:0 20px 60px rgba(0,0,0,.6)}
+h1,h2,h3{margin:0 0 8px;letter-spacing:.04em}
+h1{font-size:clamp(22px,3.6vw,44px)}h2{font-size:clamp(18px,2.8vw,32px)}
+.subtitle{color:var(--muted);margin:0 0 16px;font-size:14px}
+.btn{border:1px solid #43656f;border-radius:12px;padding:12px 18px;background:#dffcff;color:#081116;font-size:15px;font-weight:900;cursor:pointer;transition:transform .1s,background .15s}
+.btn.secondary{background:#132229;color:#dffcff}
+.btn.green{background:linear-gradient(#9effbd,#5cdb82);color:#07110b;border-color:#6ce494}
+.btn.purple{background:linear-gradient(#d7b8ff,#9f70ff);color:#150b22;border-color:#ba8fff}
+.btn.gold{background:linear-gradient(#ffe699,#e6b800);color:#221800;border-color:#ffd66d}
+.btn:active{transform:scale(.97)}
+.cards{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+.card{border:1px solid #2d4751;background:linear-gradient(180deg,#0f1b23,#091117);border-radius:15px;padding:14px;cursor:pointer;transition:border-color .2s,box-shadow .2s}
+.card.selected{border-color:var(--cyan);box-shadow:0 0 24px rgba(115,232,255,.2)}
+.weapon-icon{height:100px;border-radius:10px;border:1px solid #29414a;background:radial-gradient(circle,#142a33,#060a0e);display:flex;align-items:center;justify-content:center;font-size:48px;margin-bottom:10px}
+.statrow{display:grid;grid-template-columns:100px 1fr;gap:8px;align-items:center;font-size:12px;color:#bcd0d7;margin:5px 0}
+.meter{height:7px;background:#1d2a31;border-radius:99px;overflow:hidden}.meter i{display:block;height:100%;background:var(--cyan);border-radius:99px}
+.center{text-align:center}.spacer{height:14px}.actions{display:flex;gap:10px;flex-wrap:wrap;justify-content:center}
+.mansion-wrap{display:grid;grid-template-columns:1fr 1fr;gap:18px;align-items:stretch}
+.mansion-preview{min-height:360px;border-radius:14px;border:1px solid #253d47;position:relative;overflow:hidden;background:linear-gradient(180deg,#091018,#04070a)}
+.mansion-preview:before{content:"";position:absolute;inset:0;background:radial-gradient(circle at 50% 26%,rgba(200,230,255,.15),transparent 20%)}
+.mansion-preview .moon{position:absolute;width:100px;height:100px;border-radius:50%;background:#dfeeff;right:15%;top:8%;opacity:.7;box-shadow:0 0 35px rgba(180,220,255,.2)}
+.mansion-preview .house{position:absolute;left:16%;right:16%;bottom:0;height:65%;border:3px solid #263844;border-bottom:0;border-radius:10px 10px 0 0;background:linear-gradient(145deg,#0d151c,#05080b)}
+.map{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:12px}
+.room-btn{position:relative;min-height:110px;border:1px solid #324951;border-radius:12px;padding:12px;background:linear-gradient(180deg,#17242b,#0b1116);color:#fff;text-align:left;cursor:pointer;transition:transform .15s,border-color .15s}
+.room-btn:hover{border-color:var(--cyan);transform:translateY(-2px)}
+.room-btn.cleared{border-color:var(--green);background:linear-gradient(180deg,#122b22,#091712)}
+.room-btn .name{font-weight:900;font-size:14px}.room-btn .desc{font-size:11px;color:#a9bbc2;margin-top:4px}
+.badge{position:absolute;right:8px;top:8px;font-size:10px;padding:3px 7px;border-radius:99px;background:#1b2b31;color:#b8d9df;font-weight:800}
+.badge.cleared{background:#1b3d2b;color:#74ff9d}
+.scene-thumb{height:54px;border-radius:8px;margin-bottom:8px;border:1px solid #29404a;display:flex;align-items:center;justify-content:center;font-size:28px;background:rgba(0,0,0,.3)}
+#hud{position:absolute;inset:0;z-index:2;pointer-events:none;display:none}
+#top{position:absolute;left:2%;right:2%;top:2%;display:flex;justify-content:space-between;gap:10px;align-items:center;font-weight:800;text-shadow:0 2px 6px #000}
+.hudbox{padding:8px 12px;border-radius:11px;background:rgba(3,8,12,.78);border:1px solid rgba(150,220,235,.25);font-size:clamp(11px,1.5vw,15px);display:flex;align-items:center;gap:8px}
+#roomTitle{font-size:clamp(11px,1.8vw,17px);letter-spacing:.08em;text-transform:uppercase;color:var(--cyan)}
+#hpFill,#energyFill{height:7px;border-radius:99px;transition:width .2s}
+#hpFill{background:var(--green);width:100%}
+#energyFill{background:var(--gold);width:0%}
+.bar{width:110px;height:7px;background:#202b31;border-radius:99px;overflow:hidden}
+#escapeBtnHud{position:absolute;bottom:3%;right:3%;pointer-events:auto;display:none;z-index:10;animation:pulse 1.2s infinite alternate}
+@keyframes pulse{0%{transform:scale(1)}100%{transform:scale(1.05);box-shadow:0 0 20px rgba(255,214,109,.6)}}
+#hint{position:absolute;bottom:3%;left:50%;transform:translateX(-50%);font-size:clamp(10px,1.3vw,13px);opacity:.8;text-align:center;background:rgba(0,0,0,.6);padding:6px 14px;border-radius:99px;border:1px solid rgba(255,255,255,.1)}
+#touch{position:absolute;inset:0;z-index:3;display:none}
+.tb{position:absolute;width:76px;height:76px;border-radius:50%;border:1px solid rgba(240,255,255,.22);background:rgba(20,35,43,.55);color:#fff;font-weight:900;display:flex;align-items:center;justify-content:center;user-select:none}
+#tl{left:3%;bottom:4%}#tr{left:13%;bottom:4%}#reload{right:16%;bottom:4%;width:68px;height:68px;font-size:11px}#fire{right:4%;bottom:3%;width:100px;height:100px;border:2px solid rgba(115,232,255,.6)}
+#toast{position:absolute;left:50%;top:16%;transform:translateX(-50%);padding:10px 18px;border-radius:99px;background:rgba(5,10,14,.88);border:1px solid rgba(220,250,255,.3);font-weight:900;display:none;z-index:10;color:var(--cyan);box-shadow:0 10px 30px rgba(0,0,0,.8)}
+@media (pointer:coarse){#touch{display:block}}
+@media (max-width:760px){.cards{grid-template-columns:1fr}.mansion-wrap{grid-template-columns:1fr}.map{grid-template-columns:repeat(2,1fr)}.panel{padding:14px}}
+</style>
+</head>
+<body>
+<div id="app">
+<canvas id="game" width="1280" height="720"></canvas>
+
+<section id="screen-gun" class="screen active">
+ <div class="panel">
+  <h1>1. CHOOSE YOUR GHOST BUSTER WEAPON</h1>
+  <p class="subtitle">Select a balanced blast payload before entering the mansion. Each weapon alters rate of fire, spread, and energy yield.</p>
+  <div id="weaponCards" class="cards"></div>
+  <div class="spacer"></div>
+  <div class="actions"><button id="enterBtn" class="btn green">ENTER THE MANSION</button></div>
+ </div>
+</section>
+
+<section id="screen-entrance" class="screen">
+ <div class="panel mansion-wrap">
+   <div class="mansion-preview"><div class="moon"></div><div class="house"></div></div>
+   <div>
+    <h1>2. MANSION HEADQUARTERS</h1><p class="subtitle">Spectral energy signatures detected across multiple sectors. Choose any room on the map to begin clearing entities.</p>
+    <div class="card"><h3 id="selectedWeaponName">Weapon</h3><p id="selectedWeaponInfo" class="subtitle"></p><div id="weaponStats"></div></div>
+    <div class="spacer"></div><div class="actions"><button id="mapBtn" class="btn green">OPEN ROOM MAP</button></div>
+    <div class="spacer"></div><div class="actions"><button id="backGun" class="btn secondary">CHANGE WEAPON</button></div>
+   </div>
+ </div>
+</section>
+
+<section id="screen-map" class="screen">
+ <div class="panel">
+   <div style="display:flex;justify-content:space-between;gap:10px;align-items:center;flex-wrap:wrap">
+    <div><h1>3. CHOOSE ROOM FREELY</h1><p class="subtitle">Select any room to purge ghosts and extract core energy.</p></div>
+    <div id="totalEnergyBadge" class="hudbox" style="color:var(--gold)">ENERGY COLLECTED: 0</div>
+   </div>
+   <div id="mapGrid" class="map"></div>
+   <div class="spacer"></div><div id="mapStatus" class="center subtitle"></div>
+ </div>
+</section>
+
+<section id="screen-result" class="screen">
+ <div class="panel center">
+  <h1 id="resultTitle"></h1><p id="resultText" class="subtitle"></p>
+  <div class="actions"><button id="resultBtn" class="btn green">PLAY AGAIN</button><button id="resultGun" class="btn secondary">CHANGE WEAPON</button></div>
+ </div>
+</section>
+
+<div id="hud">
+ <div id="top">
+   <div class="hudbox">HP <div class="bar"><div id="hpFill"></div></div></div>
+   <div class="hudbox" id="roomTitle">ROOM</div>
+   <div class="hudbox">ENERGY <div class="bar"><div id="energyFill"></div></div> <span id="energyNum">0/10</span></div>
+   <div class="hudbox">AMMO <span id="ammoText">0/0</span></div>
+ </div>
+ <button id="escapeBtnHud" class="btn gold">⚡ ESCAPE ROOM</button>
+ <div id="hint">A/D or ◀/▶ to Move • Mouse/Touch to Aim & Blast • Collect Dropped Energy</div>
+</div>
+<div id="toast"></div>
+<div id="touch"><div id="tl" class="tb">◀</div><div id="tr" class="tb">▶</div><div id="reload" class="tb">RELOAD</div><div id="fire" class="tb">BLAST</div></div>
+
+<script>
+(() => {
+const canvas=document.getElementById('game'),ctx=canvas.getContext('2d'),W=canvas.width,H=canvas.height;
+const screens={gun:document.getElementById('screen-gun'),entrance:document.getElementById('screen-entrance'),map:document.getElementById('screen-map'),result:document.getElementById('screen-result')};
+
+// Rebalanced Gun Stats
+const weapons=[
+ {id:'proton',name:'PROTON BLASTER',icon:'⚡',desc:'Balanced firing rate and steady precision beam.',damage:2.5,rate:180,spread:0.04,mag:16,reload:800},
+ {id:'specter',name:'SPECTER CANNON',icon:'🜏',desc:'Heavy spectral blast, high damage, pinpoint focus.',damage:8.5,rate:520,spread:0.01,mag:6,reload:1100},
+ {id:'ecto',name:'ECTO CARBINE',icon:'☢',desc:'Rapid plasma pulse spray with lightweight recoil.',damage:1.2,rate:85,spread:0.12,mag:32,reload:650}
+];
+
+const roomPool=[
+ {name:'Main Lobby',key:'lobby',desc:'The grand entrance full of lingering specters.',icon:'🏛️'},
+ {name:'Grand Library',key:'library',desc:'Ancient grimoires levitate between dark shelves.',icon:'📚'},
+ {name:'Master Suite',key:'bedroom',desc:'An ominous chill haunts the master chamber.',icon:'🛏️'},
+ {name:'Haunted Kitchen',key:'kitchen',desc:'Spectral cookware clatters through the air.',icon:'🍳'},
+ {name:'Banquet Hall',key:'dining',desc:'Ethereal candles illuminate ghost feasts.',icon:'🍽️'},
+ {name:'Catacombs',key:'basement',desc:'The deepest and coldest floor in the mansion.',icon:'⛓️'}
+];
+
+const ghostTypes=[
+ {id:'wisp',name:'PLASMA WISP',hp:2,speed:110,color:'#73e8ff',score:50},
+ {id:'shadow',name:'SHADOW PHANTOM',hp:3,speed:65,color:'#b77cff',score:80},
+ {id:'polter',name:'POLTERGEIST',hp:4,speed:50,color:'#74ff9d',score:100},
+ {id:'banshee',name:'BANSHEE WRAITH',hp:5,speed:40,color:'#57b3ff',score:130},
+ {id:'knight',name:'PHANTOM KNIGHT',hp:7,speed:28,color:'#a1c2d4',score:170},
+ {id:'doll',name:'POSSESSED DOLL',hp:3,speed:85,color:'#ffd66d',score:120}
+];
+
+let state='gun',selectedWeapon=weapons[0];
+let rooms=[],currentRoom=null,ghosts=[],particles=[],floaters=[],energyOrbs=[],beams=[];
+let hp=100,ammo=16,maxAmmo=16,reloading=false,playerX=W/2,last=performance.now(),shotAt=0,shake=0,score=0;
+let roomEnergy=0,requiredEnergy=8,totalEnergy=0;
+let aimX=W/2,aimY=H/2;
+let keys={left:false,right:false};
+
+function showScreen(name){
+ Object.values(screens).forEach(s=>s.classList.remove('active'));
+ if(screens[name])screens[name].classList.add('active');
+ document.getElementById('hud').style.display=name==='game'?'block':'none';
+}
+function rand(a,b){return a+Math.random()*(b-a)}
+
+function generateMap(){
+ rooms=roomPool.map((r,i)=>({
+   ...r,
+   danger:1+i,
+   cleared:false,
+   ghostCount:4+i*2
+ }));
+ renderMap();
+ showScreen('map');
+}
+
+function renderWeapons(){
+ const wrap=document.getElementById('weaponCards');wrap.innerHTML='';
+ weapons.forEach(w=>{
+   const d=document.createElement('div');d.className='card'+(w.id===selectedWeapon.id?' selected':'');
+   d.innerHTML=`<div class="weapon-icon">${w.icon}</div><h3>${w.name}</h3><p class="subtitle">${w.desc}</p>
+   <div class="statrow"><span>DAMAGE</span><div class="meter"><i style="width:${(w.damage/9)*100}%"></i></div></div>
+   <div class="statrow"><span>FIRE RATE</span><div class="meter"><i style="width:${(600/w.rate)*15}%"></i></div></div>
+   <div class="statrow"><span>ACCURACY</span><div class="meter"><i style="width:${((0.15-w.spread)/0.15)*100}%"></i></div></div>
+   <div class="statrow"><span>MAGAZINE</span><div class="meter"><i style="width:${(w.mag/35)*100}%"></i></div></div>`;
+   d.onclick=()=>{selectedWeapon=w;renderWeapons()};
+   wrap.appendChild(d);
+ });
+}
+
+function renderMap(){
+ const grid=document.getElementById('mapGrid');grid.innerHTML='';
+ rooms.forEach((r,idx)=>{
+   const b=document.createElement('button');
+   b.className='room-btn'+(r.cleared?' cleared':'');
+   b.innerHTML=`<div class="scene-thumb">${r.icon}</div><div class="name">${r.name}</div><div class="desc">${r.desc}</div>
+   <span class="badge ${r.cleared?'cleared':''}">${r.cleared?'CLEARED':'DANGER '+r.danger}</span>`;
+   b.onclick=()=>enterRoom(idx);
+   grid.appendChild(b);
+ });
+ document.getElementById('totalEnergyBadge').textContent=`TOTAL ENERGY: ${totalEnergy}`;
+ document.getElementById('mapStatus').textContent='Select any room to enter freely and extract ghost energy.';
+}
+
+function enterRoom(idx){
+ currentRoom=rooms[idx];
+ showScreenGame();
+ setupRoom();
+}
+
+function showScreenGame(){
+ Object.values(screens).forEach(s=>s.classList.remove('active'));
+ document.getElementById('hud').style.display='block';
+}
+
+function setupRoom(){
+ state='game';
+ hp=100;
+ maxAmmo=selectedWeapon.mag;
+ ammo=maxAmmo;
+ reloading=false;
+ playerX=W/2;
+ roomEnergy=0;
+ requiredEnergy=Math.min(15, 6 + currentRoom.danger * 2);
+ ghosts=[];particles=[];energyOrbs=[];beams=[];floaters=[];
+ 
+ const available=ghostTypes.slice(0, Math.min(ghostTypes.length, 2 + currentRoom.danger));
+ for(let i=0;i<currentRoom.ghostCount;i++){
+   let type=available[i % available.length];
+   ghosts.push({
+     type,
+     x:rand(140,1140),
+     y:rand(180,440),
+     r:30,
+     hp:type.hp,
+     maxHp:type.hp,
+     phase:rand(0,Math.PI*2),
+     alive:true,
+     t:rand(0,10),
+     cool:rand(.5,2)
+   });
+ }
+ document.getElementById('roomTitle').textContent=currentRoom.name;
+ updateHUD();
+ showToast(`ENTERED ${currentRoom.name.toUpperCase()}`);
+}
+
+function updateHUD(){
+ document.getElementById('hpFill').style.width=Math.max(0,hp)+'%';
+ document.getElementById('hpFill').style.background=hp<30?'var(--red)':'var(--green)';
+ document.getElementById('energyFill').style.width=Math.min(100,(roomEnergy/requiredEnergy)*100)+'%';
+ document.getElementById('energyNum').textContent=`${roomEnergy}/${requiredEnergy}`;
+ document.getElementById('ammoText').textContent=ammo+'/'+maxAmmo+(reloading?' • RELOADING':'');
+ 
+ const escBtn=document.getElementById('escapeBtnHud');
+ if(roomEnergy>=requiredEnergy){
+   escBtn.style.display='block';
+ } else {
+   escBtn.style.display='none';
+ }
+}
+
+function showToast(t){
+ const el=document.getElementById('toast');el.textContent=t;el.style.display='block';
+ clearTimeout(showToast.to);showToast.to=setTimeout(()=>el.style.display='none',1400);
+}
+
+function addParticles(px,py,color,n=10){
+ for(let i=0;i<n;i++)particles.push({x:px,y:py,vx:rand(-160,160),vy:rand(-160,160),life:rand(.2,.6),color});
+}
+
+function fire(){
+ if(state!=='game'||reloading)return;
+ const now=performance.now();if(now-shotAt<selectedWeapon.rate)return;shotAt=now;
+ if(ammo<=0){reload();return}
+ ammo--;updateHUD();
+
+ const muzzleX=playerX+18, muzzleY=580;
+ const angle = Math.atan2(aimY - muzzleY, aimX - muzzleX) + rand(-selectedWeapon.spread, selectedWeapon.spread);
+ const endX = muzzleX + Math.cos(angle) * 1200;
+ const endY = muzzleY + Math.sin(angle) * 1200;
+
+ beams.push({x1:muzzleX,y1:muzzleY,x2:endX,y2:endY,life:0.12,color:selectedWeapon.id==='ecto'?'#74ff9d':(selectedWeapon.id==='specter'?'#b77cff':'#73e8ff')});
+ shake=selectedWeapon.id==='specter'?6:2;
+
+ // Raycast hit check against alive ghosts
+ let hitGhost=null, minDist=1e9;
+ ghosts.forEach(g=>{
+   if(!g.alive)return;
+   // Line point distance math
+   const A = muzzleX - g.x, B = muzzleY - g.y;
+   const C = Math.cos(angle), D = Math.sin(angle);
+   const proj = A * C + B * D;
+   const perpSq = (A*A + B*B) - proj*proj;
+   if(proj < 0 && perpSq < g.r * g.r){
+     const dist = Math.abs(proj);
+     if(dist < minDist){minDist=dist;hitGhost=g;}
+   }
+ });
+
+ if(hitGhost){
+   hitGhost.hp -= selectedWeapon.damage;
+   addParticles(hitGhost.x, hitGhost.y, hitGhost.type.color, 12);
+   if(hitGhost.hp <= 0){
+     hitGhost.alive = false;
+     score += hitGhost.type.score;
+     floaters.push({x:hitGhost.x, y:hitGhost.y, text:`+${hitGhost.type.score}`, life:1.0});
+     // Drop Energy Orbs
+     const orbCount = Math.floor(rand(1, 3));
+     for(let i=0; i<orbCount; i++){
+       energyOrbs.push({x:hitGhost.x, y:hitGhost.y, vx:rand(-80,80), vy:rand(-100,-20), life:10});
+     }
+   }
+ } else {
+   addParticles(aimX, aimY, '#ffffff', 4);
+ }
+}
+
+function reload(){
+ if(reloading||ammo===maxAmmo)return;
+ reloading=true;updateHUD();
+ setTimeout(()=>{ammo=maxAmmo;reloading=false;updateHUD()},selectedWeapon.reload);
+}
+
+function hurt(n){
+ hp-=n;shake=8;addParticles(playerX,620,'#ff5d78',10);
+ if(hp<=0){hp=0;endRun(false);}
+ updateHUD();
+}
+
+function escapeRoom(){
+ currentRoom.cleared=true;
+ totalEnergy += roomEnergy;
+ showToast(`${currentRoom.name.toUpperCase()} ESCAPED!`);
+ setTimeout(()=>{
+   renderMap();
+   showScreen('map');
+ }, 800);
+}
+
+function endRun(won){
+ state='result';
+ document.getElementById('hud').style.display='none';
+ document.getElementById('resultTitle').textContent=won?'MANSION ESCAPED!':'BUSTED';
+ document.getElementById('resultText').textContent=won?`You collected ${totalEnergy} total energy and cleared sectors. Final Score: ${score}`:`The spirits overwhelmed your suit. Final Score: ${score}`;
+ showScreen('result');
+}
+
+function update(dt){
+ if(state==='game'){
+   if(keys.left)playerX-=320*dt;if(keys.right)playerX+=320*dt;
+   playerX=Math.max(100,Math.min(W-100,playerX));
+
+   // Ghost AI & Attacks
+   ghosts.forEach(g=>{
+     if(!g.alive)return;
+     g.t+=dt;
+     g.x+=Math.sin(g.t*1.5+g.phase)*25*dt;
+     g.y+=Math.cos(g.t*1.1+g.phase)*(g.type.speed*.3)*dt;
+     g.x=Math.max(100,Math.min(W-100,g.x));
+     g.y=Math.max(160,Math.min(460,g.y));
+
+     g.cool-=dt;
+     if(g.cool<=0){
+       if(Math.random()<0.35) hurt(4+currentRoom.danger);
+       g.cool=rand(1.5,3.5);
+     }
+   });
+
+   // Energy Orbs magnetize to player
+   energyOrbs.forEach(o=>{
+     o.x+=o.vx*dt; o.y+=o.vy*dt;
+     o.vy+=80*dt; // gravity float
+     const dx=playerX-o.x, dy=620-o.y;
+     const dist=Math.hypot(dx,dy);
+     if(dist<180){
+       o.vx+= (dx/dist)*300*dt;
+       o.vy+= (dy/dist)*300*dt;
+     }
+     if(dist<35){
+       o.collected=true;
+       roomEnergy++;
+       updateHUD();
+       floaters.push({x:o.x,y:o.y,text:'+1 ENERGY',life:0.8});
+     }
+   });
+   energyOrbs=energyOrbs.filter(o=>!o.collected);
+ }
+
+ // FX updates
+ beams.forEach(b=>b.life-=dt); beams=beams.filter(b=>b.life>0);
+ particles.forEach(p=>{p.x+=p.vx*dt;p.y+=p.vy*dt;p.life-=dt}); particles=particles.filter(p=>p.life>0);
+ floaters.forEach(f=>{f.y-=30*dt;f.life-=dt}); floaters=floaters.filter(f=>f.life>0);
+ shake=Math.max(0,shake-dt*20);
+}
+
+function drawScene(){
+ const bg='#091017';
+ const gr=ctx.createLinearGradient(0,0,0,H);gr.addColorStop(0,bg);gr.addColorStop(1,'#030508');ctx.fillStyle=gr;ctx.fillRect(0,0,W,H);
+
+ // Background Architecture
+ ctx.strokeStyle='rgba(115,232,255,.08)';ctx.lineWidth=3;
+ for(let i=0;i<5;i++)ctx.strokeRect(60+i*240,140,200,360);
+
+ // Draw Energy Orbs
+ energyOrbs.forEach(o=>{
+   ctx.save();ctx.shadowColor='#ffd66d';ctx.shadowBlur=12;
+   ctx.fillStyle='#ffe899';ctx.beginPath();ctx.arc(o.x,o.y,8,0,Math.PI*2);ctx.fill();
+   ctx.restore();
+ });
+
+ // Draw Ghosts
+ ghosts.forEach(drawGhost);
+
+ // Draw Beams
+ beams.forEach(b=>{
+   ctx.save();ctx.strokeStyle=b.color;ctx.lineWidth=6;ctx.shadowColor=b.color;ctx.shadowBlur=16;
+   ctx.beginPath();ctx.moveTo(b.x1,b.y1);ctx.lineTo(b.x2,b.y2);ctx.stroke();
+   ctx.restore();
+ });
+
+ // Draw Player Character
+ drawPlayer();
+
+ // Draw Particles & Floaters
+ particles.forEach(p=>{
+   ctx.fillStyle=p.color;ctx.globalAlpha=Math.max(0,p.life*2);
+   ctx.beginPath();ctx.arc(p.x,p.y,4,0,Math.PI*2);ctx.fill();
+ });ctx.globalAlpha=1;
+
+ floaters.forEach(f=>{
+   ctx.globalAlpha=Math.min(1,f.life*2);ctx.fillStyle='#ffd66d';
+   ctx.font='900 20px system-ui';ctx.textAlign='center';ctx.fillText(f.text,f.x,f.y);
+ });ctx.globalAlpha=1;
+
+ // Aim Crosshair
+ ctx.strokeStyle='rgba(115,232,255,.8)';ctx.lineWidth=2;
+ ctx.beginPath();ctx.arc(aimX,aimY,12,0,Math.PI*2);ctx.stroke();
+ ctx.beginPath();ctx.moveTo(aimX-18,aimY);ctx.lineTo(aimX+18,aimY);ctx.moveTo(aimX,aimY-18);ctx.lineTo(aimX,aimY+18);ctx.stroke();
+}
+
+function drawPlayer(){
+ ctx.save();
+ const px=playerX, py=620;
+
+ // Ghostbuster Suit Body
+ ctx.fillStyle='#1e2d36';ctx.fillRect(px-18,py-30,36,50); // Torso
+ ctx.fillStyle='#131f26';ctx.fillRect(px-16,py+20,12,35);ctx.fillRect(px+4,py+20,12,35); // Legs
+
+ // Backpack Proton Pack with LED Glow
+ ctx.fillStyle='#0a0f14';ctx.fillRect(px-28,py-28,12,38);
+ ctx.fillStyle='#74ff9d';ctx.shadowColor='#74ff9d';ctx.shadowBlur=8;
+ ctx.fillRect(px-26,py-22,4,4); // Status LED
+
+ // Head & Goggles
+ ctx.shadowBlur=0;ctx.fillStyle='#f0c8a0';ctx.beginPath();ctx.arc(px,py-42,14,0,Math.PI*2);ctx.fill();
+ ctx.fillStyle='#73e8ff';ctx.fillRect(px-10,py-48,20,8); // Visor
+
+ // Rotating Gun Arm pointing to aim position
+ const armAngle = Math.atan2(aimY - (py - 20), aimX - (px + 10));
+ ctx.save();
+ ctx.translate(px+10, py-20);
+ ctx.rotate(armAngle);
+ ctx.fillStyle='#2c4b55';ctx.fillRect(0,-5,28,10); // Weapon Nozzle
+ ctx.fillStyle=selectedWeapon.id==='specter'?'#b77cff':'#73e8ff';ctx.fillRect(28,-3,8,6);
+ ctx.restore();
+
+ ctx.restore();
+}
+
+function drawGhost(g){
+ if(!g.alive)return;
+ ctx.save();ctx.translate(g.x,g.y);
+ ctx.shadowColor=g.type.color;ctx.shadowBlur=20;ctx.fillStyle=g.type.color;
+
+ const id=g.type.id;
+ if(id==='wisp'){
+   ctx.beginPath();ctx.arc(0,0,22+Math.sin(g.t*6)*3,0,Math.PI*2);ctx.fill();
+ } else if(id==='shadow'){
+   ctx.fillStyle='#2a1b4e';ctx.beginPath();ctx.ellipse(0,0,20,32,0,0,Math.PI*2);ctx.fill();
+   ctx.fillStyle='#ff5d78';ctx.fillRect(-8,-8,5,5);ctx.fillRect(3,-8,5,5);
+ } else if(id==='polter'){
+   ctx.beginPath();ctx.arc(0,0,24,0,Math.PI*2);ctx.fill();
+   ctx.strokeStyle='#74ff9d';ctx.strokeRect(-35+Math.sin(g.t*4)*10,-30,12,12); // floating objects
+ } else if(id==='banshee'){
+   ctx.beginPath();ctx.arc(0,-10,20,Math.PI,0);ctx.lineTo(20,30);ctx.lineTo(-20,30);ctx.closePath();ctx.fill();
+   ctx.fillStyle='#000';ctx.beginPath();ctx.arc(0,2,8,0,Math.PI*2);ctx.fill(); // Screaming mouth
+ } else if(id==='knight'){
+   ctx.fillStyle='#6c8a9c';ctx.fillRect(-20,-25,40,50);
+   ctx.fillStyle='#ffd66d';ctx.fillRect(-10,-15,20,4); // Visor slit
+ } else if(id==='doll'){
+   ctx.fillStyle='#eae3d2';ctx.beginPath();ctx.arc(0,-8,18,0,Math.PI*2);ctx.fill();
+   ctx.fillStyle='#000';ctx.fillRect(-8,-12,5,5);ctx.fillRect(3,-12,5,5); // Button eyes
+ }
+
+ ctx.restore();
+}
+
+function loop(t){
+ const dt=Math.min(.033,(t-last)/1000);last=t;
+ if(state==='game'){
+   const sx=(Math.random()-.5)*shake, sy=(Math.random()-.5)*shake;
+   ctx.save();ctx.translate(sx,sy);
+   update(dt);
+   drawScene();
+   ctx.restore();
+ } else {
+   ctx.clearRect(0,0,W,H);
+ }
+ requestAnimationFrame(loop);
+}
+
+// Event Listeners & Controls
+function updateAim(e){
+ const rect=canvas.getBoundingClientRect();
+ aimX=(e.clientX-rect.left)*(W/rect.width);
+ aimY=(e.clientY-rect.top)*(H/rect.height);
+}
+
+window.addEventListener('mousemove',updateAim);
+canvas.addEventListener('pointerdown',e=>{updateAim(e);fire();});
+
+document.getElementById('enterBtn').onclick=()=>{
+ document.getElementById('selectedWeaponName').textContent=selectedWeapon.name;
+ document.getElementById('selectedWeaponInfo').textContent=selectedWeapon.desc;
+ document.getElementById('weaponStats').innerHTML=`Damage ${selectedWeapon.damage} • Reload ${selectedWeapon.reload}ms • Mag ${selectedWeapon.mag}`;
+ showScreen('entrance');
+};
+document.getElementById('mapBtn').onclick=generateMap;
+document.getElementById('backGun').onclick=()=>{renderWeapons();showScreen('gun');};
+document.getElementById('escapeBtnHud').onclick=escapeRoom;
+document.getElementById('resultBtn').onclick=generateMap;
+document.getElementById('resultGun').onclick=()=>{renderWeapons();showScreen('gun');};
+
+window.addEventListener('keydown',e=>{
+ if(e.key==='a'||e.key==='ArrowLeft')keys.left=true;
+ if(e.key==='d'||e.key==='ArrowRight')keys.right=true;
+ if(e.key.toLowerCase()==='r')reload();
+ if(e.code==='Space')fire();
+});
+window.addEventListener('keyup',e=>{
+ if(e.key==='a'||e.key==='ArrowLeft')keys.left=false;
+ if(e.key==='d'||e.key==='ArrowRight')keys.right=false;
+});
+
+function bindTouchHold(id,key){
+ const el=document.getElementById(id);
+ el.addEventListener('pointerdown',e=>{e.preventDefault();keys[key]=true;});
+ ['pointerup','pointercancel','pointerleave'].forEach(ev=>el.addEventListener(ev,e=>{keys[key]=false;}));
+}
+bindTouchHold('tl','left');bindTouchHold('tr','right');
+document.getElementById('fire').addEventListener('pointerdown',fire);
+document.getElementById('reload').addEventListener('pointerdown',reload);
+
+renderWeapons();
+requestAnimationFrame(loop);
+})();
+</script>
+</div>
+</body>
+</html>
