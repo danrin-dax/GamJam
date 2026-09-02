@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#05080d">
+<title>Ghost Buster: Haunted Mansion</title>
+<style>
+:root{--bg:#05080d;--panel:#0b1219;--line:#2c4b55;--ink:#effbff;--muted:#9ab0b8;--cyan:#73e8ff;--green:#74ff9d;--purple:#b77cff;--red:#ff5d78;--gold:#ffd66d}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;overflow:hidden;background:#000;color:var(--ink);font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;touch-action:none}
+body{display:flex;align-items:center;justify-content:center}
+#app{position:relative;width:min(100vw,177.78vh);height:min(100vh,56.25vw);background:#04070a;overflow:hidden}
+canvas{width:100%;height:100%;display:block}
+.screen{position:absolute;inset:0;display:none;z-index:8;background:radial-gradient(circle at 50% 35%,rgba(30,54,65,.26),rgba(2,5,8,.97) 70%);overflow:auto;padding:2.5%;touch-action:auto}
+.screen.active{display:block}
+.panel{max-width:1120px;margin:0 auto;background:rgba(8,14,20,.94);border:1px solid #29434e;border-radius:18px;padding:20px;box-shadow:0 20px 60px rgba(0,0,0,.5)}
+h1,h2,h3{margin:0 0 8px;letter-spacing:.04em}
+h1{font-size:clamp(24px,4vw,46px)}h2{font-size:clamp(20px,3vw,34px)}
+.subtitle{color:var(--muted);margin:0 0 18px}
+.btn{border:1px solid #43656f;border-radius:12px;padding:12px 18px;background:#dffcff;color:#081116;font-size:16px;font-weight:900;cursor:pointer}
+.btn.secondary{background:#132229;color:#dffcff}
+.btn.green{background:linear-gradient(#9effbd,#6be891);color:#07110b;border-color:#6ce494}
+.btn.purple{background:linear-gradient(#d7b8ff,#9f70ff);color:#150b22;border-color:#ba8fff}
+.btn:active{transform:scale(.98)}
+.cards{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+.card{border:1px solid #2d4751;background:linear-gradient(180deg,#0f1b23,#091117);border-radius:15px;padding:14px;cursor:pointer}
+.card.selected{outline:2px solid var(--cyan);box-shadow:0 0 28px rgba(115,232,255,.15)}
+.card h3{display:flex;justify-content:space-between;align-items:center}
+.weapon-icon{height:110px;border-radius:10px;border:1px solid #29414a;background:radial-gradient(circle,#142a33,#060a0e);display:flex;align-items:center;justify-content:center;font-size:54px;margin-bottom:10px}
+.statrow{display:grid;grid-template-columns:95px 1fr;gap:8px;align-items:center;font-size:12px;color:#bcd0d7;margin:6px 0}
+.meter{height:7px;background:#1d2a31;border-radius:99px;overflow:hidden}.meter i{display:block;height:100%;background:var(--cyan)}
+.center{text-align:center}.spacer{height:14px}.actions{display:flex;gap:10px;flex-wrap:wrap;justify-content:center}
+.entrance-wrap{display:grid;grid-template-columns:1fr 1fr;gap:18px;align-items:stretch}
+.mansion{min-height:420px;border-radius:14px;border:1px solid #253d47;position:relative;overflow:hidden;background:linear-gradient(180deg,#091018,#04070a)}
+.mansion:before{content:"";position:absolute;inset:0;background:
+radial-gradient(circle at 50% 26%,rgba(200,230,255,.18),transparent 16%),
+linear-gradient(90deg,transparent 46%,rgba(0,0,0,.45) 47%,transparent 48%),
+repeating-linear-gradient(90deg,rgba(80,120,130,.05) 0 2px,transparent 2px 90px)}
+.mansion .moon{position:absolute;width:120px;height:120px;border-radius:50%;background:#dfeeff;right:15%;top:8%;opacity:.7;box-shadow:0 0 40px rgba(180,220,255,.18)}
+.mansion .house{position:absolute;left:16%;right:16%;bottom:0;height:68%;border:4px solid #263844;border-bottom:0;border-radius:10px 10px 0 0;background:linear-gradient(145deg,#0d151c,#05080b)}
+.mansion .roof{position:absolute;left:12%;right:12%;top:17%;height:0;border-left:100px solid transparent;border-right:100px solid transparent;border-bottom:110px solid #10191f;transform:translateX(-50%);margin-left:50%}
+.mansion .door{position:absolute;left:50%;bottom:0;transform:translateX(-50%);width:92px;height:150px;background:#05080a;border:3px solid #334b55}
+.mansion .windows{position:absolute;left:18%;right:18%;bottom:42%;display:flex;justify-content:space-between}.window{width:54px;height:72px;border:2px solid #51636b;background:radial-gradient(circle,#6f8f9c33,#04070a)}
+.map{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:12px}
+.room-btn{position:relative;min-height:100px;border:1px solid #324951;border-radius:12px;padding:10px;background:linear-gradient(180deg,#17242b,#0b1116);color:#fff;text-align:left;cursor:pointer}
+.room-btn.current{outline:2px solid var(--green)}.room-btn.locked{opacity:.45}.room-btn .name{font-weight:900;font-size:13px}.room-btn .desc{font-size:11px;color:#a9bbc2;margin-top:4px}.badge{position:absolute;right:8px;top:8px;font-size:10px;padding:3px 6px;border-radius:99px;background:#1b2b31;color:#b8d9df}
+.scene-thumb{height:76px;border-radius:9px;margin-bottom:7px;border:1px solid #29404a;display:flex;align-items:center;justify-content:center;font-size:31px}
+.help{display:none;position:absolute;inset:3%;z-index:15;background:rgba(3,7,10,.96);border:1px solid #33535d;border-radius:18px;padding:14px;overflow:auto}.help.show{display:block}.help img{display:block;width:100%;max-width:1080px;margin:10px auto;border-radius:10px;border:1px solid #2f4a54}
+#hud{position:absolute;inset:0;z-index:2;pointer-events:none;display:none}
+#top{position:absolute;left:2%;right:2%;top:2%;display:flex;justify-content:space-between;gap:10px;align-items:center;font-weight:800;text-shadow:0 2px 6px #000}
+.hudbox{padding:7px 10px;border-radius:11px;background:rgba(3,8,12,.68);border:1px solid rgba(150,220,235,.2);font-size:clamp(10px,1.6vw,16px)}
+#roomTitle{font-size:clamp(11px,1.8vw,18px);letter-spacing:.08em;text-transform:uppercase}
+#hpFill{height:7px;background:var(--green);border-radius:99px;width:100%}.bar{width:130px;height:7px;background:#202b31;border-radius:99px;overflow:hidden;margin-top:3px}
+#cross{position:absolute;left:50%;top:50%;width:34px;height:34px;transform:translate(-50%,-50%);border:2px solid rgba(230,250,255,.78);border-radius:50%}
+#cross:before,#cross:after{content:"";position:absolute;background:rgba(230,250,255,.82)}#cross:before{width:2px;height:42px;left:14px;top:-6px}#cross:after{width:42px;height:2px;left:-6px;top:14px}
+#hint{position:absolute;bottom:3%;left:50%;transform:translateX(-50%);font-size:clamp(10px,1.4vw,14px);opacity:.65;text-align:center}
+#touch{position:absolute;inset:0;z-index:3;display:none}
+.tb{position:absolute;width:78px;height:78px;border-radius:50%;border:1px solid rgba(240,255,255,.22);background:rgba(20,35,43,.46);color:#fff;font-weight:900;display:flex;align-items:center;justify-content:center;user-select:none}
+#tl{left:3%;bottom:4%}#tr{left:13%;bottom:4%}#reload{right:16%;bottom:4%;width:70px;height:70px;font-size:12px}#fire{right:4%;bottom:3%;width:108px;height:108px;border:2px solid rgba(115,232,255,.5)}
+#toast{position:absolute;left:50%;top:17%;transform:translateX(-50%);padding:9px 14px;border-radius:99px;background:rgba(5,10,14,.75);border:1px solid rgba(220,250,255,.22);font-weight:900;display:none;z-index:4}
+@media (pointer:coarse){#touch{display:block}}
+@media (max-width:760px){.cards{grid-template-columns:1fr}.entrance-wrap{grid-template-columns:1fr}.map{grid-template-columns:repeat(2,1fr)}.panel{padding:14px}}
+</style>
+</head>
+<body>
+<div id="app">
+<canvas id="game" width="1280" height="720"></canvas>
+
+<section id="screen-gun" class="screen active">
+ <div class="panel">
+  <h1>1. CHOOSE YOUR GHOST BUSTER GUN</h1>
+  <p class="subtitle">Pick your loadout before entering the mansion. Each gun changes how you handle different ghosts.</p>
+  <div id="weaponCards" class="cards"></div>
+  <div class="spacer"></div>
+  <div class="actions"><button id="enterBtn" class="btn green">ENTER THE MANSION</button></div>
+ </div>
+</section>
+
+<section id="screen-entrance" class="screen">
+ <div class="panel entrance-wrap">
+   <div class="mansion"><div class="moon"></div><div class="house"><div class="roof"></div><div class="windows"><div class="window"></div><div class="window"></div><div class="window"></div></div><div class="door"></div></div></div>
+   <div>
+    <h1>2. THE MANSION</h1><p class="subtitle">Your scanner is picking up multiple supernatural signatures inside.</p>
+    <div class="card"><h3 id="selectedWeaponName">Weapon</h3><p id="selectedWeaponInfo" class="subtitle"></p><div id="weaponStats"></div></div>
+    <div class="spacer"></div><div class="actions"><button id="mapBtn" class="btn">OPEN MANSION MAP</button></div>
+    <div class="spacer"></div><div class="actions"><button id="backGun" class="btn secondary">CHANGE GUN</button></div>
+   </div>
+ </div>
+</section>
+
+<section id="screen-map" class="screen">
+ <div class="panel">
+   <div style="display:flex;justify-content:space-between;gap:10px;align-items:start;flex-wrap:wrap">
+    <div><h1>3. CHOOSE YOUR DESTINATION</h1><p class="subtitle">Select a room to explore. Some rooms are more dangerous than others.</p></div>
+    <div class="actions"><button id="schemaBtn" class="btn secondary">VIEW SCHEMATIC</button></div>
+   </div>
+   <div id="mapGrid" class="map"></div>
+   <div class="spacer"></div><div id="mapStatus" class="center subtitle"></div>
+ </div>
+</section>
+
+<section id="screen-result" class="screen">
+ <div class="panel center">
+  <h1 id="resultTitle"></h1><p id="resultText" class="subtitle"></p>
+  <div class="actions"><button id="resultBtn" class="btn green">PLAY AGAIN</button><button id="resultGun" class="btn secondary">CHANGE GUN</button></div>
+ </div>
+</section>
+
+<div id="help" class="help">
+ <div class="actions"><button id="closeHelp" class="btn secondary">CLOSE</button></div>
+ <h2 class="center">MANSION SCHEMATIC</h2>
+ <img src="mansion_schematic.png" alt="Haunted mansion game flow schematic">
+</div>
+
+<div id="hud">
+ <div id="top">
+   <div class="hudbox">HP <div class="bar"><div id="hpFill"></div></div></div>
+   <div class="hudbox" id="roomTitle">ROOM</div>
+   <div class="hudbox">AMMO <span id="ammoText">0/0</span></div>
+ </div>
+ <div id="cross"></div>
+ <div id="hint"></div>
+</div>
+<div id="toast"></div>
+<div id="touch"><div id="tl" class="tb">◀</div><div id="tr" class="tb">▶</div><div id="reload" class="tb">RELOAD</div><div id="fire" class="tb">BLAST</div></div>
+
+<script>
+(() => {
+const canvas=document.getElementById('game'),ctx=canvas.getContext('2d'),W=canvas.width,H=canvas.height;
+const screens={gun:document.getElementById('screen-gun'),entrance:document.getElementById('screen-entrance'),map:document.getElementById('screen-map'),result:document.getElementById('screen-result')};
+const weapons=[
+ {id:'proton',name:'PROTON BLASTER',icon:'⚡',desc:'Balanced all-round weapon.',damage:2,rate:260,range:1,mag:12,reload:850},
+ {id:'specter',name:'SPECTER CANNON',icon:'🜏',desc:'Heavy damage, slow fire rate.',damage:4,rate:520,range:1.15,mag:8,reload:1050},
+ {id:'ecto',name:'ECTO CARBINE',icon:'☢',desc:'High fire rate, lower damage.',damage:1,rate:140,range:.92,mag:20,reload:700}
+];
+const roomPool=[
+ {name:'Main Lobby',key:'lobby',desc:'The grand entrance. Echoes of the past linger here.',icon:'🏛️'},
+ {name:'Library',key:'library',desc:'Dusty books and dark secrets line the walls.',icon:'📚'},
+ {name:'Main Bedroom',key:'bedroom',desc:'Something lurks in the shadows of the master chamber.',icon:'🛏️'},
+ {name:'Kitchen',key:'kitchen',desc:'Cold... but you can almost feel a presence watching.',icon:'🍳'},
+ {name:'Dining Room',key:'dining',desc:'Set for a feast that never happened.',icon:'🍽️'},
+ {name:'Bathroom',key:'bath',desc:'The water runs red in the dead of night.',icon:'🛁'},
+ {name:'Bathroom 2',key:'bath2',desc:'Mirrors show things that are not there.',icon:'🚿'},
+ {name:'Attic',key:'attic',desc:'Old trunks, cobwebs, and something breathing.',icon:'🕯️'},
+ {name:'Basement',key:'basement',desc:'The coldest room in the house.',icon:'⛓️'}
+];
+const ghostTypes=[
+ {id:'wisp',name:'WISP',desc:'Fast',hp:1,speed:120,color:'#79eaff',score:50,shape:'wisp'},
+ {id:'shadow',name:'SHADOW',desc:'Stealthy',hp:2,speed:70,color:'#9477ff',score:70,shape:'shadow'},
+ {id:'polter',name:'POLTERGEIST',desc:'Throws objects',hp:2,speed:55,color:'#78f2aa',score:80,shape:'polter'},
+ {id:'banshee',name:'BANSHEE',desc:'Scream attack',hp:3,speed:42,color:'#7bc8ff',score:100,shape:'banshee'},
+ {id:'knight',name:'PHANTOM KNIGHT',desc:'High defense',hp:4,speed:30,color:'#9bb4c8',score:130,shape:'knight'},
+ {id:'doll',name:'POSSESSED DOLL',desc:'Unpredictable',hp:2,speed:90,color:'#ffd274',score:110,shape:'doll'}
+];
+
+let state='gun',difficulty=parseInt(localStorage.getItem('ghostBusterDifficulty')||'1',10)||1,selectedWeapon=weapons[0];
+let rooms=[],visited=new Set(),currentRoom=null,ghosts=[],projectiles=[],particles=[],floaters=[];
+let hp=100,ammo=12,maxAmmo=12,reloading=false,playerX=W/2,last=performance.now(),shotAt=0,shake=0,score=0,boss=null;
+let keys={left:false,right:false};
+
+function showScreen(name){Object.values(screens).forEach(s=>s.classList.remove('active')); if(screens[name])screens[name].classList.add('active');document.getElementById('hud').style.display=name==='game'?'block':'none'}
+function rand(a,b){return a+Math.random()*(b-a)}
+function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
+function generateMap(){
+ const chosen=shuffle(roomPool.map(r=>({...r}))).slice(0,7);
+ rooms=chosen.map((r,i)=>({...r,danger:1+i+Math.floor(Math.random()*2),cleared:false,visited:false,ghostCount:3+i+Math.floor(Math.random()*2)+Math.floor((difficulty-1)*.7)}));
+ visited=new Set();renderMap();showScreen('map');
+}
+function renderWeapons(){
+ const wrap=document.getElementById('weaponCards');wrap.innerHTML='';
+ weapons.forEach(w=>{
+   const d=document.createElement('div');d.className='card'+(w.id===selectedWeapon.id?' selected':'');
+   d.innerHTML=`<div class="weapon-icon">${w.icon}</div><h3>${w.name}</h3><p class="subtitle">${w.desc}</p>
+   <div class="statrow"><span>DAMAGE</span><div class="meter"><i style="width:${Math.min(100,w.damage/4*100)}%"></i></div></div>
+   <div class="statrow"><span>FIRE RATE</span><div class="meter"><i style="width:${Math.min(100,700/w.rate*100)}%"></i></div></div>
+   <div class="statrow"><span>RANGE</span><div class="meter"><i style="width:${Math.min(100,w.range/1.15*100)}%"></i></div></div>
+   <div class="statrow"><span>MAGAZINE</span><div class="meter"><i style="width:${w.mag/20*100}%"></i></div></div>`;
+   d.onclick=()=>{selectedWeapon=w;renderWeapons()};
+   wrap.appendChild(d);
+ });
+}
+function renderMap(){
+ const grid=document.getElementById('mapGrid');grid.innerHTML='';
+ rooms.forEach((r,idx)=>{
+   const b=document.createElement('button');b.className='room-btn';
+   const lock=idx>0 && !rooms[idx-1].cleared;
+   b.disabled=lock;
+   b.innerHTML=`<div class="scene-thumb">${r.icon}</div><div class="name">${r.name}</div><div class="desc">${r.desc}</div><span class="badge">${lock?'LOCKED':'DANGER '+r.danger}</span>`;
+   if(r.cleared)b.classList.add('current');
+   b.onclick=()=>enterRoom(idx);
+   grid.appendChild(b);
+ });
+ document.getElementById('mapStatus').textContent=`Difficulty ${difficulty} • Explore and clear rooms to unlock deeper areas.`;
+}
+function enterRoom(idx){
+ currentRoom=rooms[idx];currentRoom.visited=true;visited.add(idx);
+ showScreenGame();setupRoom();
+}
+function showScreenGame(){Object.values(screens).forEach(s=>s.classList.remove('active'));document.getElementById('hud').style.display='block'}
+function setupRoom(){
+ state='game';hp=Math.max(55,100-(difficulty-1)*2);maxAmmo=selectedWeapon.mag;ammo=maxAmmo;reloading=false;playerX=W/2;score=score||0;
+ ghosts=[];projectiles=[];boss=null;
+ const available=shuffle(ghostTypes.slice());
+ for(let i=0;i<currentRoom.ghostCount;i++){
+   let type=available[i%Math.min(available.length,2+Math.floor((difficulty+currentRoom.danger)/2))];
+   if(Math.random()<.55) type=ghostTypes[Math.floor(Math.random()*ghostTypes.length)];
+   ghosts.push({type,x:rand(120,1160),y:rand(235,480),r:rand(24,42),hp:type.hp+Math.floor((difficulty-1)/3),phase:rand(0,6.28),alive:true,t:rand(0,4),cool:rand(.3,1.8)});
+ }
+ document.getElementById('roomTitle').textContent=currentRoom.name;
+ document.getElementById('hint').textContent=`${selectedWeapon.name} • Tap / click to blast • Move with A/D or ◀/▶ • R to reload`;
+ updateHUD();
+ showToast(currentRoom.name);
+}
+function setupBoss(){state='boss';boss={x:960,y:320,r:92,hp:20+Math.floor(difficulty*2.2),max:0,t:0};boss.max=boss.hp;ammo=maxAmmo;updateHUD();showToast('HOUSE WRAITH')}
+function updateHUD(){
+ document.getElementById('hpFill').style.width=Math.max(0,hp)+'%';
+ document.getElementById('hpFill').style.background=hp<30?'var(--red)':'var(--green)';
+ document.getElementById('ammoText').textContent=ammo+'/'+maxAmmo+(reloading?' • RELOADING':'');
+}
+function showToast(t){const el=document.getElementById('toast');el.textContent=t;el.style.display='block';clearTimeout(showToast.to);showToast.to=setTimeout(()=>el.style.display='none',1200)}
+function addParticles(px,py,color,n=12){for(let i=0;i<n;i++)particles.push({x:px,y:py,vx:rand(-190,190),vy:rand(-190,190),life:rand(.25,.7),color})}
+function fire(){
+ if(state!=='game'&&state!=='boss'||reloading)return;
+ const now=performance.now();if(now-shotAt<selectedWeapon.rate)return;shotAt=now;
+ if(ammo<=0){reload();return}ammo--;updateHUD();
+ const tx=W/2;
+ if(state==='boss'){
+   if(Math.abs(tx-boss.x)<boss.r*1.0){boss.hp-=selectedWeapon.damage;score+=60;addParticles(boss.x,boss.y,'#cf84ff',16);shake=7}
+ }else{
+   let best=null,bd=1e9;
+   for(const g of ghosts){if(!g.alive)continue;const d=Math.abs(tx-g.x);if(d<g.r*selectedWeapon.range && d<bd){bd=d;best=g}}
+   if(best){best.hp-=selectedWeapon.damage;score+=best.type.score;addParticles(best.x,best.y,best.type.color,14);shake=5;if(best.hp<=0){best.alive=false;floaters.push({x:best.x,y:best.y,text:'+'+best.type.score,life:1.0})}}else addParticles(tx,390,'#d6faff',8)
+ }
+}
+function reload(){if(reloading||ammo===maxAmmo)return;reloading=true;updateHUD();setTimeout(()=>{ammo=maxAmmo;reloading=false;updateHUD()},selectedWeapon.reload)}
+function hurt(n){hp-=n;shake=10;addParticles(playerX,610,'#ff6480',10);if(hp<=0){hp=0;endRun(false)}updateHUD()}
+function endRun(won){
+ if(won){difficulty++;localStorage.setItem('ghostBusterDifficulty',difficulty);document.getElementById('resultTitle').textContent='MANSION CLEARED!';document.getElementById('resultText').textContent=`The House Wraith is busted. Score: ${score}. Next run difficulty: ${difficulty}.`;}
+ else {difficulty++;localStorage.setItem('ghostBusterDifficulty',difficulty);document.getElementById('resultTitle').textContent='BUSTED';document.getElementById('resultText').textContent=`The spirits overwhelmed you. Score: ${score}. Next run difficulty: ${difficulty}.`;}
+ state='result';document.getElementById('hud').style.display='none';showScreen('result');
+}
+function clearRoom(){
+ const idx=rooms.indexOf(currentRoom);currentRoom.cleared=true;
+ if(idx===rooms.length-1){setupBoss();return}
+ showScreen('map');renderMap();document.getElementById('mapStatus').textContent=`${currentRoom.name} cleared! Choose your next unlocked room.`;
+}
+function update(dt){
+ if(state==='game'){
+   if(keys.left)playerX-=300*dt;if(keys.right)playerX+=300*dt;playerX=Math.max(90,Math.min(W-90,playerX));
+   for(const g of ghosts)if(g.alive){
+     g.t+=dt;g.x+=Math.sin(g.t*1.2+g.phase)*18*dt;g.y+=Math.sin(g.t*1.6+g.phase)*g.type.speed/4*dt;g.cool-=dt;
+     if(g.type.id==='shadow'&&Math.sin(g.t*1.8)>0.7)g.r=20;else g.r=32;
+     g.x=Math.max(80,Math.min(1200,g.x));g.y=Math.max(220,Math.min(490,g.y));
+     const attackRate=.10 + difficulty*.01 + currentRoom.danger*.025;
+     if(g.cool<=0 && Math.random()<dt*attackRate){hurt(3+currentRoom.danger+Math.floor(difficulty/3));g.cool=rand(.7,1.7)}
+   }
+   if(ghosts.every(g=>!g.alive)){currentRoom.cleared=true;showToast('ROOM CLEARED');setTimeout(()=>state==='game'&&clearRoom(),650)}
+ }
+ if(state==='boss'){
+   boss.t+=dt;boss.x=930+Math.sin(boss.t*(.9+difficulty*.03))*270;boss.y=315+Math.sin(boss.t*(1.5+difficulty*.05))*80;
+   if(Math.random()<dt*(.18+difficulty*.012))hurt(5+Math.floor(difficulty/2));
+   if(boss.hp<=0)endRun(true);
+ }
+ for(const p of particles){p.x+=p.vx*dt;p.y+=p.vy*dt;p.vy+=190*dt;p.life-=dt}
+ particles=particles.filter(p=>p.life>0);for(const f of floaters){f.y-=28*dt;f.life-=dt}floaters=floaters.filter(f=>f.life>0);shake=Math.max(0,shake-dt*22);
+}
+function drawScene(){
+ let bg='#071016';
+ const k=currentRoom?.key||'lobby';
+ const bgs={lobby:'#10171d',library:'#14131c',bedroom:'#1a1516',kitchen:'#121818',dining:'#17140e',bath:'#0e171a',bath2:'#0f161a',attic:'#1b1711',basement:'#0b1116'};
+ bg=bgs[k]||bg;
+ const gr=ctx.createLinearGradient(0,0,0,H);gr.addColorStop(0,bg);gr.addColorStop(1,'#04070a');ctx.fillStyle=gr;ctx.fillRect(0,0,W,H);
+ ctx.fillStyle='#080d11';ctx.fillRect(0,520,W,200);
+ // scene furniture silhouettes
+ ctx.strokeStyle='rgba(210,240,245,.11)';ctx.lineWidth=4;
+ for(let i=0;i<4;i++)ctx.strokeRect(70+i*290,150,170,95);
+ if(k==='library'){for(let i=0;i<6;i++){ctx.fillStyle='rgba(120,95,70,.22)';ctx.fillRect(80+i*185,220,140,230)}}
+ if(k==='bedroom'){ctx.fillStyle='rgba(95,68,58,.3)';ctx.fillRect(480,370,320,110);ctx.fillRect(515,330,55,50);ctx.fillRect(710,330,55,50)}
+ if(k==='kitchen'){for(let i=0;i<7;i++){ctx.fillStyle='rgba(150,165,170,.16)';ctx.fillRect(120+i*150,390,110,130)}}
+ if(k==='dining'){ctx.fillStyle='rgba(140,95,55,.25)';ctx.fillRect(350,405,580,80);for(let i=0;i<7;i++){ctx.fillRect(380+i*85,475,15,70)}}
+ if(k==='bath'||k==='bath2'){ctx.strokeStyle='rgba(140,210,220,.18)';ctx.strokeRect(430,360,420,150);ctx.beginPath();ctx.arc(650,410,70,0,Math.PI*2);ctx.stroke()}
+ if(k==='attic'){for(let i=0;i<8;i++){ctx.strokeStyle='rgba(190,170,130,.16)';ctx.strokeRect(100+i*135,310,110,160)}}
+ if(k==='basement'){for(let i=0;i<7;i++){ctx.fillStyle='rgba(90,110,120,.18)';ctx.fillRect(100+i*180,280,100,210)}}
+ // player
+ ctx.fillStyle='#071015';ctx.beginPath();ctx.arc(playerX,592,24,0,Math.PI*2);ctx.fill();ctx.fillRect(playerX-16,613,32,90);
+ ctx.fillStyle='#78e9ff';ctx.fillRect(playerX+14,584,78,10);
+ if(state==='boss')drawBoss();else ghosts.forEach(drawGhost);
+ for(const p of particles){ctx.globalAlpha=Math.max(0,p.life*2);ctx.fillStyle=p.color;ctx.beginPath();ctx.arc(p.x,p.y,4+6*p.life,0,Math.PI*2);ctx.fill()}ctx.globalAlpha=1;
+ for(const f of floaters){ctx.globalAlpha=Math.min(1,f.life*2);ctx.fillStyle='#fff';ctx.font='900 26px system-ui';ctx.textAlign='center';ctx.fillText(f.text,f.x,f.y)}ctx.globalAlpha=1;
+ const vign=ctx.createRadialGradient(W/2,H/2,150,W/2,H/2,700);vign.addColorStop(0,'rgba(0,0,0,0)');vign.addColorStop(1,'rgba(0,0,0,.72)');ctx.fillStyle=vign;ctx.fillRect(0,0,W,H);
+}
+function drawGhost(g){
+ ctx.save();ctx.translate(g.x,g.y);ctx.globalAlpha=.86+Math.sin(g.t*6+g.phase)*.12;ctx.shadowColor=g.type.color;ctx.shadowBlur=22;ctx.fillStyle='#e3f1f8';
+ if(g.type.id==='knight'){ctx.fillStyle='#71818c';ctx.fillRect(-22,-20,44,88);ctx.beginPath();ctx.arc(0,-28,30,Math.PI,0);ctx.fill();ctx.fillStyle='#0e1720';ctx.fillRect(-6,-31,12,6)}
+ else if(g.type.id==='doll'){ctx.beginPath();ctx.arc(0,-22,24,0,Math.PI*2);ctx.fill();ctx.fillRect(-19,4,38,46)}
+ else {ctx.beginPath();ctx.arc(0,-16,g.r*.72,Math.PI,0);ctx.lineTo(g.r*.72,42);for(let i=0;i<4;i++){let xx=g.r*.72-i*(g.r*.48);ctx.quadraticCurveTo(xx,58+(i%2?8:0),xx-g.r*.24,42)}ctx.closePath();ctx.fill()}
+ ctx.shadowBlur=0;ctx.fillStyle='#131820';ctx.beginPath();ctx.ellipse(-g.r*.23,-18,7,12,0,0,Math.PI*2);ctx.fill();ctx.beginPath();ctx.ellipse(g.r*.23,-18,7,12,0,0,Math.PI*2);ctx.fill();ctx.restore()
+}
+function drawBoss(){ctx.save();ctx.translate(boss.x,boss.y);ctx.shadowColor='#c27cff';ctx.shadowBlur=40;ctx.fillStyle='#eadfff';ctx.beginPath();ctx.arc(0,-16,boss.r*.72,Math.PI,0);ctx.lineTo(boss.r*.72,100);ctx.quadraticCurveTo(45,130,0,100);ctx.quadraticCurveTo(-45,130,-boss.r*.72,100);ctx.closePath();ctx.fill();ctx.shadowBlur=0;ctx.fillStyle='#27152f';ctx.beginPath();ctx.ellipse(-32,-20,12,19,0,0,Math.PI*2);ctx.fill();ctx.beginPath();ctx.ellipse(32,-20,12,19,0,0,Math.PI*2);ctx.fill();ctx.restore();
+ ctx.fillStyle='rgba(0,0,0,.5)';ctx.fillRect(W*.25,85,W*.5,18);ctx.fillStyle='#d16cff';ctx.fillRect(W*.25,85,W*.5*(boss.hp/boss.max),18);ctx.fillStyle='#eee0ff';ctx.font='900 17px system-ui';ctx.textAlign='center';ctx.fillText('HOUSE WRAITH',W/2,75)
+}
+function loop(t){const dt=Math.min(.033,(t-last)/1000);last=t;if(state==='game'||state==='boss'){const sx=(Math.random()-.5)*shake,sy=(Math.random()-.5)*shake;ctx.save();ctx.translate(sx,sy);update(dt);drawScene();ctx.restore()}else{ctx.clearRect(0,0,W,H)}requestAnimationFrame(loop)}
+
+document.getElementById('enterBtn').onclick=()=>{const w=selectedWeapon;document.getElementById('selectedWeaponName').textContent=w.name;document.getElementById('selectedWeaponInfo').textContent=w.desc;document.getElementById('weaponStats').innerHTML=`Damage ${w.damage} • Fire rate ${w.rate}ms • Magazine ${w.mag} • Reload ${w.reload}ms`;showScreen('entrance')};
+document.getElementById('mapBtn').onclick=()=>{generateMap()};
+document.getElementById('backGun').onclick=()=>{renderWeapons();showScreen('gun')};
+document.getElementById('schemaBtn').onclick=()=>document.getElementById('help').classList.add('show');
+document.getElementById('closeHelp').onclick=()=>document.getElementById('help').classList.remove('show');
+document.getElementById('resultBtn').onclick=()=>{score=0;generateMap()};
+document.getElementById('resultGun').onclick=()=>{score=0;renderWeapons();showScreen('gun')};
+
+window.addEventListener('keydown',e=>{if(e.key==='a'||e.key==='ArrowLeft')keys.left=true;if(e.key==='d'||e.key==='ArrowRight')keys.right=true;if(e.key.toLowerCase()==='r')reload();if(e.code==='Space')fire()});
+window.addEventListener('keyup',e=>{if(e.key==='a'||e.key==='ArrowLeft')keys.left=false;if(e.key==='d'||e.key==='ArrowRight')keys.right=false});
+canvas.addEventListener('pointerdown',e=>{if(state==='game'||state==='boss')fire()});
+function bindHold(id,key){const el=document.getElementById(id);el.addEventListener('pointerdown',e=>{keys[key]=true});['pointerup','pointercancel','pointerleave'].forEach(ev=>el.addEventListener(ev,e=>{keys[key]=false}))}
+bindHold('tl','left');bindHold('tr','right');
+document.getElementById('fire').addEventListener('pointerdown',fire);document.getElementById('reload').addEventListener('pointerdown',reload);
+renderWeapons();requestAnimationFrame(loop);
+})();
+</script>
+</div>
+</body>
+</html>
