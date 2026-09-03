@@ -92,8 +92,7 @@ h1{font-size:clamp(22px,3.6vw,44px)}h2{font-size:clamp(18px,2.8vw,32px)}
 <section id="screen-map" class="screen">
  <div class="panel">
    <div style="display:flex;justify-content:space-between;gap:10px;align-items:center;flex-wrap:wrap">
-    <div><h1>3. CHOOSE ROOM FREELY</h1><p class="subtitle">Select any room to purge ghosts and extract core energy.</p></div>
-    <div id="totalEnergyBadge" class="hudbox" style="color:var(--gold)">ENERGY COLLECTED: 0</div>
+    <div><h1>3. CHOOSE ROOM FREELY</h1><p class="subtitle">Select any room to purge ghosts and extract core energy to escape.</p></div>
    </div>
    <div id="mapGrid" class="map"></div>
    <div class="spacer"></div><div id="mapStatus" class="center subtitle"></div>
@@ -111,7 +110,7 @@ h1{font-size:clamp(22px,3.6vw,44px)}h2{font-size:clamp(18px,2.8vw,32px)}
  <div id="top">
    <div class="hudbox">HP <div class="bar"><div id="hpFill"></div></div></div>
    <div class="hudbox" id="roomTitle">ROOM</div>
-   <div class="hudbox">ENERGY <div class="bar"><div id="energyFill"></div></div> <span id="energyNum">0/10</span></div>
+   <div class="hudbox">ESCAPE ENERGY <div class="bar"><div id="energyFill"></div></div> <span id="energyNum">0/10</span></div>
    <div class="hudbox">AMMO <span id="ammoText">0/0</span></div>
  </div>
  <button id="escapeBtnHud" class="btn gold">⚡ ESCAPE ROOM</button>
@@ -153,7 +152,7 @@ const ghostTypes=[
 let state='gun',selectedWeapon=weapons[0];
 let rooms=[],currentRoom=null,ghosts=[],particles=[],floaters=[],energyOrbs=[],beams=[];
 let hp=100,ammo=16,maxAmmo=16,reloading=false,playerX=W/2,last=performance.now(),shotAt=0,shake=0,score=0;
-let roomEnergy=0,requiredEnergy=8,totalEnergy=0;
+let roomEnergy=0,requiredEnergy=8;
 let aimX=W/2,aimY=H/2;
 let keys={left:false,right:false};
 
@@ -199,7 +198,6 @@ function renderMap(){
    b.onclick=()=>enterRoom(idx);
    grid.appendChild(b);
  });
- document.getElementById('totalEnergyBadge').textContent=`TOTAL ENERGY: ${totalEnergy}`;
  document.getElementById('mapStatus').textContent='Select any room to enter freely and extract ghost energy.';
 }
 
@@ -331,7 +329,6 @@ function hurt(n){
 
 function escapeRoom(){
  currentRoom.cleared=true;
- totalEnergy += roomEnergy;
  showToast(`${currentRoom.name.toUpperCase()} ESCAPED!`);
  setTimeout(()=>{
    renderMap();
@@ -343,7 +340,7 @@ function endRun(won){
  state='result';
  document.getElementById('hud').style.display='none';
  document.getElementById('resultTitle').textContent=won?'MANSION ESCAPED!':'BUSTED';
- document.getElementById('resultText').textContent=won?`You collected ${totalEnergy} total energy and cleared sectors. Final Score: ${score}`:`The spirits overwhelmed your suit. Final Score: ${score}`;
+ document.getElementById('resultText').textContent=won?`You successfully cleared the sectors. Final Score: ${score}`:`The spirits overwhelmed your suit. Final Score: ${score}`;
  showScreen('result');
 }
 
